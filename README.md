@@ -29,7 +29,7 @@ How it works
 ~~~~
 # mutate each entry in wordlist with leet characters
 # common numbers & special characters are appended / prepended
-cat wordlist | ./pymangler.py --leet
+<strong>cat wordlist | ./pymangler.py --leet</strong>
 ~~~~
 
 <br>
@@ -37,9 +37,9 @@ cat wordlist | ./pymangler.py --leet
 #### Advanced usage:
 ~~~~
 # analyze wordlist and save statistics into file
-cat rockyou.txt | ./liststat.py -s rockyou_stats
+<strong>cat rockyou.txt | ./liststat.py -s rockyou_stats</strong>
 
 # generate passwords based on the string 'evilcorp' for 36 hours
 # progresses from simple to complex
-echo 'evilcorp' | ./pymangler -l rockyou_stats --time 36
+<strong>echo 'evilcorp' | ./pymangler -l rockyou_stats --time 36</strong>
 ~~~~
