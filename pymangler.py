@@ -36,6 +36,19 @@ common_specials =   ['@','!','.','_','*','#','$','-',' ','&','+','/','%','?','!!
 
 # most common masks from linkedin
 # 'wds' == word + digit + special
+'''
+             word-number:  41.1%  (24663118)
+                    word:  23.4%  (14040483)
+                  number:  19.6%  (11723886)
+             number-word:  5.0%  (2982894)
+        word-number-word:  3.2%  (1940231)
+      number-word-number:  1.4%  (868778)
+     word-number-special:  1.2%  (717326)
+     word-special-number:  1.2%  (700550)
+ word-number-word-number:  0.8%  (480862)
+       word-special-word:  0.7%  (403672)
+            word-special:  0.4%  (266352)
+'''
 common_masks = [
     'w',
     'd',
@@ -51,27 +64,14 @@ common_masks = [
     #'dsw',
     #'wdw'
     #''
-
-
-    '''
-                 word-number:  41.1%  (24663118)
-                        word:  23.4%  (14040483)
-                      number:  19.6%  (11723886)
-                 number-word:  5.0%  (2982894)
-            word-number-word:  3.2%  (1940231)
-          number-word-number:  1.4%  (868778)
-         word-number-special:  1.2%  (717326)
-         word-special-number:  1.2%  (700550)
-     word-number-word-number:  0.8%  (480862)
-           word-special-word:  0.7%  (403672)
-                word-special:  0.4%  (266352)
-    '''
 ]
+
 
 # drop the bottom 10% of entries from liststat file
 liststat_coverage = 90
 
 # max mutations for each word
+# reduces mutation keyspace to linear rather than exponential
 max_leet    = 256
 max_cap     = 512
 
@@ -551,7 +551,7 @@ class Overseer():
 
         in summary:
             each mask must have own source wordlist and hashcat rules
-            script is created that uses a separate hashcat command to crack each mask
+            script is created that uses a separate hashcat command to crack each mask (TODO)
         '''
 
         

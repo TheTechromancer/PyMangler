@@ -26,7 +26,7 @@ How it works:
 #### Basic usage:
 ~~~~
 # mutate each entry in wordlist with leet characters
-# common numbers & special characters are appended / prepended
+# common numbers & special characters are also appended / prepended
 cat wordlist | ./pymangler.py --leet
 ~~~~
 
