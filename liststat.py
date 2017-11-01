@@ -11,7 +11,7 @@ NOTE:   You can customize the results of this script by choosing the character s
         Character sets are represented by integers for easy binary comparison.
         This really cuts down on the 'if' statements. (see 'charsets' variable)
 
-        This script is designed based on the concept of a "simple list", which is a
+        This script is designed based on the concept of a "simple mask", which is a
         password broken into "chunks" based on character type. (word, number, etc.)
         E.g., "Password123!" would be broken into 4 parts: "P", "assword", "123", "!"
         chunks can be further generalized by merging character sets.
@@ -63,7 +63,7 @@ leet_numbers    = ('8', '3', '1', '0', '5', '7')    # leet numbers are not inclu
 
 
 '''
-chunks to Count:
+chunks to count:
 
 --> Useful for finding common words, appended/prepended numbers, punctuation, etc.
 
@@ -377,8 +377,7 @@ class ListStat:
 
     def _count_chunks(self, mask):
         '''
-        Adds part of a word to self.chunks
-        This helps determine popular/common strings
+        Stores statistics for common password chunks
         '''
 
         for position in chunks_to_count:
@@ -627,58 +626,6 @@ class Mask:
         Does not include leet numbers at the beginning or end of words.
         '''
 
-        '''
-
-        print(self.lst)
-        sleep(1)
-
-        temp_lst = []
-        _max = len(self.lst) - 2
-
-        start   = 0
-        end     = 2
-        good    = False
-
-        while 1:
-            if start < _max:
-                spec = end - 1
-
-                try:
-                    if self.lst[start][0] & charset > 0 and self.lst[end[0]] & charset > 0:
-                        if self.lst[spec][0] & charset > 0 or self.lst[spec][1] in leet_specials or self.lst[spec][1] in leet_numbers:
-                            good = True
-                        else:
-                            start += 1
-                        end += 1
-
-
-
-
-                        else:
-                            if good == True:
-                                tmp_lst.append(self._combine(self.lst[start:end+1]))
-                                start = end+1
-                                end = start+2
-                            else:
-                                temp_lst.append(self.lst[start])
-                                start += 1
-                                end += 1
-                            good = False
-                    else:
-                        temp_lst.append(self.lst[start])
-                        start += 1
-                        end += 1
-                except KeyError:
-                    if good:
-                        tmp_lst.append(_combine(self.lst[start:end+1]))
-                    else:
-                        temp_lst += self.lst[start:end]
-            else:
-                temp_lst.append(self.lst[start:])
-
-        return temp_lst
-
-        '''
         num_chunks = len(self.lst)
         num_range = range(num_chunks)
         leet_lst = []
@@ -710,7 +657,6 @@ class Mask:
         temp_lst = []
         i = 0
 
-
         # need to loop twice, since analysis isn't complete
         # until first iteration is finished
         for n in num_range:
@@ -739,17 +685,6 @@ class Mask:
         return temp_lst
 
 
-
-
-    def _combine(self, lst):
-
-        chunk = lst[0]
-
-        for e in lst[1:]:
-            chunk[0] = chunk[0] | e[0]
-            chunk[1] += e[1]
-
-        return chunk
 
 
 
@@ -900,13 +835,6 @@ if __name__ == '__main__':
 
         options = parser.parse_args()
 
-        # exit if no arguments
-        '''
-        if len(argv) < 2:
-            parser.print_help()
-            raise AssertionError("Not enough arguments.")
-        '''
-
         # print progress
         if not options.no_progress:
             def _print_progress(word=''):
@@ -943,25 +871,6 @@ if __name__ == '__main__':
                     _print_progress(word)
                 c += 1
                 list_stats.update(word)
-
-        
-        
-
-        '''
-        asdf = ['Password#123', '$$Sup3rC@la77#O01@L4s', '$7Pas5w0rd123']
-
-        #for i in range(100000):
-
-        
-        for a in asdf:
-
-            print(a)
-            a = WordStat(a)
-
-            print(a.mask.generalize(6))
-            print(a.mask.generalize(6, leet=True))
-        '''
-
 
 
         rc = 0
