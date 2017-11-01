@@ -6,10 +6,10 @@ A wordlist mangler that has the ability to analyze existing lists and generate l
 <br>
 
 ##
-How it works
+How it works:
 
 <ol>
-	<li>Analyzes wordlist to determine patterns such as:</li>
+	<li>Analyzes wordlist (using liststat.py) to determine patterns such as:</li>
 	<ul>
 		<li>common simple masks (word-digit, word-special, etc.)</li>
 		<li>common numbers and special characters</li>
@@ -21,15 +21,13 @@ How it works
 </ol>
 
 
-
-
 <br>
 
 #### Basic usage:
 ~~~~
 # mutate each entry in wordlist with leet characters
 # common numbers & special characters are appended / prepended
-<strong>cat wordlist | ./pymangler.py --leet</strong>
+cat wordlist | ./pymangler.py --leet
 ~~~~
 
 <br>
@@ -37,9 +35,9 @@ How it works
 #### Advanced usage:
 ~~~~
 # analyze wordlist and save statistics into file
-<strong>cat rockyou.txt | ./liststat.py -s rockyou_stats</strong>
+cat rockyou.txt | ./liststat.py -s rockyou_stats
 
 # generate passwords based on the string 'evilcorp' for 36 hours
-# progresses from simple to complex
-<strong>echo 'evilcorp' | ./pymangler -l rockyou_stats --time 36</strong>
+# starts with simple mutations and becomes more complex as time goes on
+echo 'evilcorp' | ./pymangler -l rockyou_stats --time 36
 ~~~~
