@@ -1,10 +1,6 @@
 #!/usr/bin/python3
 
 '''
-wordstat.py version .1
-
-Written and tested for Python 3.5.1
-
 NOTE:   You can customize the results of this script by choosing the character sets or
         word positions (first, second, last, etc.) in which you are most interested.
 
@@ -19,8 +15,6 @@ NOTE:   You can customize the results of this script by choosing the character s
 
 TODO:
 For heaven's sake rewrite ListStat._count_chunks
-
-Evaluate memory usage
 
 can do threading later; create 'merge' ListStat method which eats other classes? Run at the end!
 

@@ -11,7 +11,7 @@ Forget *pend functions and work on capswap, leet functions
 
 simple_mangling = False
 try:
-    from wordstat import ListStat
+    from liststat import ListStat
 except ImportError:
     simple_mangling = True
 
@@ -68,8 +68,8 @@ common_masks = [
     '''
 ]
 
-# drop the bottom 10% of entries from wordstat file
-wordstat_coverage = 90
+# drop the bottom 10% of entries from liststat file
+liststat_coverage = 90
 
 # max mutations for each word
 max_leet    = 256
@@ -765,8 +765,8 @@ if __name__ == '__main__':
 
     parser = ArgumentParser(description="Mangle wordlist using traditional methods, or syllable-like mutations")
 
-    parser.add_argument('-l', '--loadfile',         type=obj_from_file,                                 help="Savefile from wordstat.py", metavar='FILE')
-    parser.add_argument('-p', '--percent',          type=int,           default=wordstat_coverage,      help="Percent coverage from wordstat file: default {}".format(wordstat_coverage), metavar='INT')
+    parser.add_argument('-l', '--loadfile',         type=obj_from_file,                                 help="Savefile from liststat.py", metavar='FILE')
+    parser.add_argument('-p', '--percent',          type=int,           default=liststat_coverage,      help="Percent coverage from liststat file: default {}".format(liststat_coverage), metavar='INT')
     parser.add_argument('-pps', '--per-second',     type=int,           default=hashrate,               help="Expected hashrate - used for limiting time spent on complex masks: default {}".format(hashrate), metavar='INT')
     parser.add_argument('-t', '--time',             type=int,           default=finish_time,            help="Target time to finish in hours: default {}".format(finish_time), metavar='INT')
     parser.add_argument('-hc', '--hashcat',                                                             help="Use hashcat rules to maximize efficiency", metavar='DIR')
@@ -794,13 +794,13 @@ if __name__ == '__main__':
         if options.words is None:
             options.words = [l.decode().strip('\r\n') for l in stdin.buffer.readlines()]
 
-        # parse file from wordstat.py
+        # parse file from liststat.py
         if options.loadfile and not simple_mangling:
 
             l = options.loadfile
             p = options.percent
 
-            # override lists loaded from wordstat by manually specified ones, if they exist
+            # override lists loaded from liststat by manually specified ones, if they exist
 
             if not options.masks:
                 options.masks   = list(l.trim(l.simple_masks, p, l.total, max_results=options.mask_max))

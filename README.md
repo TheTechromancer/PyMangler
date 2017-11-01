@@ -41,3 +41,8 @@ cat rockyou.txt | ./liststat.py -s rockyou_stats
 # starts with simple mutations and becomes more complex as time goes on
 echo 'evilcorp' | ./pymangler -l rockyou_stats --time 36
 ~~~~
+
+<br>
+
+#### Caveats:
+Memory usage is fairly high for liststat.py - it will grow to roughly 3x the size of the wordlist due to the amount of metadata stored
