@@ -18,14 +18,6 @@ For heaven's sake rewrite ListStat._count_chunks
 
 can do threading later; create 'merge' ListStat method which eats other classes? Run at the end!
 
-COOL IDEA FOR CALCULATING BEST MASKS:
-1.  from masks.txt (3,?l?l?l):
-        max_time = optional
-    a. time = (total_keyspace / pps)
-    b. cracked_per_second = number / time
-    c. add masks in order of cracked_per_second until max_time is reached
-2.  same concept with simple masks, except it uses pymangler instead
-
 with ListStat:      20s
 without ListStat:   7s
 1. move as much as possible to ListStat
