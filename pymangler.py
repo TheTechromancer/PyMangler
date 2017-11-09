@@ -438,7 +438,7 @@ class Concatenator():
 
         each .rules file gets the following naming convention:
 
-            "<simple_mask>-<prepend|append>-<ruleset_num>-<sequence>.rules"
+            "<simple_mask>-<prepend|append>-<ruleset_num>.rules"
 
         simple masks with >1 words get multiple sets of rules
         e.g. mask 'swdw' would get the following rules:
@@ -489,25 +489,54 @@ class Concatenator():
 
                 to_append.append( self.lists[1:] )
 
+        self._write_rules(smask, 'prepend', to_prepend, out_dir)
+        self._write_rules(smask, 'append', to_append, out_dir)
 
+        '''
         for v in range(len(to_prepend)):
             for x in range(len(to_prepend[v])):
                 chartype, _list, listsize, multiplier = to_prepend[v][x]
-                with open(out_dir / '{}-prepend-{}-{}.rules'.format(smask, v, x), 'w') as f:
+                with open(out_dir / '{}-prepend-{}-{}.rules'.format(smask, x), 'w') as f:
                     for p in self.gen_functions[chartype](_list, multiplier).gen():
                         f.write('^{}\n'.format(p))
 
         for v in range(len(to_append)):
             for x in range(len(to_append[v])):
                 chartype, _list, listsize, multiplier = to_append[v][x]
-                with open(out_dir / '{}-append-{}-{}.rules'.format(smask, v, x), 'w') as f:
+                with open(out_dir / '{}-append-{}-{}.rules'.format(smask, x), 'w') as f:
                     for a in self.gen_functions[chartype](_list, multiplier).gen():
                         f.write('${}\n'.format(a))
+        '''
 
 
     def _word_gen(self, _list, multiplier):
 
         return self.gen_functions['w'](_list, perm=self.perm, leet=self.leet, cap=self.cap, capswap=self.capswap, multiplier=multiplier).gen()
+
+
+    def _write_rules(self, smask, pend, to_pend, out_dir):
+
+        assert (pend == 'prepend' or pend == 'append')
+
+        rule_chars = {
+            'prepend':  '^',
+            'append':   '$'
+        }
+
+        written = []
+
+        for sub_smask in to_pend:
+            for x in range(len(sub_smask)):
+                chartype, _list, listsize, multiplier = sub_smask[x]
+                if not chartype in written:
+                    written.append(chartype)
+                    with open(out_dir / '{}-{}-{}.rules'.format(smask, pend, chartype), 'w') as f:
+                        if chartype == 'w':
+                            for a in self._word_gen(_list, multiplier):
+                                f.write('{}{}\n'.format(rule_chars[pend], a))
+                        else:
+                            for a in self.gen_functions[chartype](_list, multiplier).gen():
+                                f.write('{}{}\n'.format(rule_chars[pend], a))
 
 
 
@@ -917,9 +946,6 @@ if __name__ == '__main__':
                     # clear dictionary to save memory
                     l.chunks[pos][char] = None
             l = None
-
-
-        assert options.words, "Please specify wordlist (-w)"
 
         # def _calc_multiplier(masks, words, numbers, specials, pps, target_time, leet=1, capswap=1, confirm=True):
         # _calc_multiplier( options.masks, options.words, options.numbers, options.specials, options.per_second, options.time,\
