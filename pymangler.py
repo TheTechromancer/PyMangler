@@ -1,13 +1,5 @@
 #!/usr/bin/python3
-'''
-Version 0.1
 
-TODO:
-
-Forget *pend functions and work on capswap, leet functions
-*pending should be done in hashcat.  Don't reinvent the wheel
-
-'''
 
 simple_mangling = False
 try:

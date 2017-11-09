@@ -16,8 +16,6 @@ NOTE:   You can customize the results of this script by choosing the character s
 TODO:
 For heaven's sake rewrite ListStat._count_chunks
 
-can do threading later; create 'merge' ListStat method which eats other classes? Run at the end!
-
 with ListStat:      20s
 without ListStat:   7s
 1. move as much as possible to ListStat
@@ -313,17 +311,6 @@ class ListStat:
         for k in dct:
 
             sorted_list.append( (k, dct[k][0], dct[k][1]) )
-
-        '''
-        while 1:
-
-            try:
-                k, v = dct.popitem()
-                sorted_list.append((k, v[0], v[1]))
-
-            except KeyError:
-                break
-        '''
 
         sorted_list.sort(key=key, reverse=True)
         if max_results:
