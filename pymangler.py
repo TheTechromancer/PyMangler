@@ -67,6 +67,11 @@ common_masks = [
     #''
 ]
 
+# hashcat settings
+hc_binary   = 'hashcat'
+
+# hashcat rule output directory
+def_hc_dir = './hashcat'
 
 # drop the bottom 10% of entries from liststat file
 liststat_coverage = 90
@@ -85,8 +90,7 @@ finish_time = 24 # 168 == 1 week
 # don't change unless you get errors
 wordlist_encoding = 'utf-8'
 
-# hashcat rule output directory
-def_hc_dir = './hashcat'
+
 
 
 ### INIT CODE - DO NOT TOUCH ###
@@ -436,9 +440,9 @@ class Concatenator():
         '''
         generates hashcat rules
 
-        each .rules file gets the following naming convention:
-
-            "<simple_mask>-<prepend|append>-<ruleset_num>.rules"
+        runs once for each simple mask
+        creates directory named after mask
+        fills it with a dictionary & prepend/append rule files.
 
         simple masks with >1 words get multiple sets of rules
         e.g. mask 'swdw' would get the following rules:
@@ -449,14 +453,14 @@ class Concatenator():
                 prepend swd
         '''
 
-        to_prepend = []
-        to_append = []
+        to_pend = []
 
-        out_dir.mkdir(parents=True, exist_ok=True)
         smask = ''.join([e[0] for e in self.lists])
-
-        # account for 
-        with open(out_dir / '{}-dict.txt'.format(smask), 'w') as f:
+        out_dir = out_dir / smask
+        out_dir.mkdir(parents=True, exist_ok=True)
+        
+        dict_filename = out_dir / 'dict.txt'
+        with open(dict_filename, 'w') as f:
 
             if 'w' in smask:
 
@@ -468,8 +472,9 @@ class Concatenator():
 
                     if chartype == 'w':
 
-                        to_prepend.append( self.lists[:i] )
-                        to_append.append( self.lists[i+1:] )
+                        to_pend.append( (self.lists[:i], self.lists[i+1:]) )
+                        #to_prepend.append( self.lists[:i] )
+                        #to_append.append( self.lists[i+1:] )
 
                         if not written:
 
@@ -478,8 +483,6 @@ class Concatenator():
 
                             written = True
 
-
-
             else:
 
                 chartype, _list, listsize, multiplier = self.lists[0]
@@ -487,26 +490,9 @@ class Concatenator():
                 for w in self.gen_functions[chartype](_list, multiplier).gen():
                     f.write('{}\n'.format(w))
 
-                to_append.append( self.lists[1:] )
+                to_pend.append( ([],self.lists[1:]) )
 
-        self._write_rules(smask, 'prepend', to_prepend, out_dir)
-        self._write_rules(smask, 'append', to_append, out_dir)
-
-        '''
-        for v in range(len(to_prepend)):
-            for x in range(len(to_prepend[v])):
-                chartype, _list, listsize, multiplier = to_prepend[v][x]
-                with open(out_dir / '{}-prepend-{}-{}.rules'.format(smask, x), 'w') as f:
-                    for p in self.gen_functions[chartype](_list, multiplier).gen():
-                        f.write('^{}\n'.format(p))
-
-        for v in range(len(to_append)):
-            for x in range(len(to_append[v])):
-                chartype, _list, listsize, multiplier = to_append[v][x]
-                with open(out_dir / '{}-append-{}-{}.rules'.format(smask, x), 'w') as f:
-                    for a in self.gen_functions[chartype](_list, multiplier).gen():
-                        f.write('${}\n'.format(a))
-        '''
+        return (str(dict_filename), self._write_rules(to_pend, out_dir))
 
 
     def _word_gen(self, _list, multiplier):
@@ -514,30 +500,35 @@ class Concatenator():
         return self.gen_functions['w'](_list, perm=self.perm, leet=self.leet, cap=self.cap, capswap=self.capswap, multiplier=multiplier).gen()
 
 
-    def _write_rules(self, smask, pend, to_pend, out_dir):
-
-        assert (pend == 'prepend' or pend == 'append')
+    def _write_rules(self, to_pend, out_dir):
 
         rule_chars = {
-            'prepend':  '^',
-            'append':   '$'
+            0:  ('prepend', '^'),
+            1:  ('append', '$')
         }
 
         written = []
+        jobs = []
 
-        for sub_smask in to_pend:
-            for x in range(len(sub_smask)):
-                chartype, _list, listsize, multiplier = sub_smask[x]
-                if not chartype in written:
-                    written.append(chartype)
-                    with open(out_dir / '{}-{}-{}.rules'.format(smask, pend, chartype), 'w') as f:
-                        if chartype == 'w':
-                            for a in self._word_gen(_list, multiplier):
-                                f.write('{}{}\n'.format(rule_chars[pend], a))
-                        else:
-                            for a in self.gen_functions[chartype](_list, multiplier).gen():
-                                f.write('{}{}\n'.format(rule_chars[pend], a))
+        for ruleset in to_pend:
+            r = []
+            for i in range(len(ruleset)):
+                for e in ruleset[i]:
+                    chartype, _list, listsize, multiplier = e
+                    filename = out_dir / '{}-{}.rules'.format(rule_chars[i][0], chartype)
+                    if not chartype in written:
+                        written.append(chartype)
+                        with open(filename, 'w') as f:
+                            if chartype == 'w':
+                                for a in self._word_gen(_list, multiplier):
+                                    f.write('{}{}\n'.format(rule_chars[i][1], a))
+                            else:
+                                for a in self.gen_functions[chartype](_list, multiplier).gen():
+                                    f.write('{}{}\n'.format(rule_chars[i][1], a))
+                    r.append(str(filename))
+            jobs.append(r)
 
+        return jobs
 
 
 
@@ -608,7 +599,7 @@ class Overseer():
         self._calc_multiplier()
 
 
-    def start(self):
+    def start(self, hc_binary=hc_binary, hashfile='<hashfile>', _print=False):
 
         '''
         for minfo in self.mask_info:
@@ -617,6 +608,8 @@ class Overseer():
                     print(g)
         '''
 
+        jobsets = []
+        commands = []
         for minfo in self.mask_info:
             c = Concatenator(minfo.chunk_info, self.perm, self.leet, self.cap, self.capswap)
 
@@ -625,7 +618,25 @@ class Overseer():
                     print(p)
 
             else:
-                c.hc_gen(self.hc_dir)
+                jobsets.append(c.hc_gen(self.hc_dir))
+
+        if jobsets:
+            for jobset in jobsets:
+                d, rulesets = jobset
+                for _r in rulesets:
+
+                    r = []
+                    for _ in _r:
+                        r.extend(['-r', _])
+
+                    cmd = [hc_binary] + ['-a', '0'] + r + [d, hashfile]
+                    if _print:
+                        print(' '.join(cmd))
+
+                    commands.append(r)
+
+            return commands
+
 
 
 
@@ -955,7 +966,7 @@ if __name__ == '__main__':
             options.time, options.permutations, options.leet, options.capital, options.capswap, options.hashcat)
         if not options.no_confirm:
             o.print_job_stats()
-        o.start()
+        o.start(_print=True)
         # run permutations before other mangling operations
         # mangling before permutations produces a lot more output, but probably at reduced quality
         # p = perm(options.permutations, options.words)
