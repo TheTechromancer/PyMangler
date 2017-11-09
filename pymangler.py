@@ -19,6 +19,7 @@ import pickle
 import string
 import itertools
 from time import sleep
+from pathlib import Path
 #from signal import signal, SIGPIPE, SIG_DFL
 from sys import argv, exit, stdin, stderr
 from argparse import ArgumentParser, FileType, ArgumentError
@@ -83,6 +84,9 @@ finish_time = 24 # 168 == 1 week
 
 # don't change unless you get errors
 wordlist_encoding = 'utf-8'
+
+# hashcat rule output directory
+def_hc_dir = './hashcat'
 
 
 ### INIT CODE - DO NOT TOUCH ###
@@ -382,7 +386,6 @@ class Multiplier():
 
 class Concatenator():
 
-    #def __init__(self, w_list, m_list=None, d_list=None, s_list=None, multiplier=1):
     def __init__(self, lists, perm, leet, cap, capswap):
 
         # TODO: add hashcat rule functionality
@@ -402,8 +405,7 @@ class Concatenator():
 
     def gen(self, chunk=None):
         '''
-        (o_o)
-
+        (>.<)
         '''
 
         if chunk is None:
@@ -413,7 +415,7 @@ class Concatenator():
             chunk = chunk[0]
             chartype, _list, listsize, multiplier = chunk
             if chunk[0] == 'w':
-                for c in self.gen_functions[chartype](_list, perm=self.perm, leet=self.leet, cap=self.cap, capswap=self.capswap, multiplier=multiplier).gen():
+                for c in self._word_gen(_list, multiplier):
                     yield c
             else:
                 for c in self.gen_functions[chartype](_list, multiplier).gen():
@@ -423,11 +425,92 @@ class Concatenator():
             for c1 in self.gen(chunk[:-1]):
                 chartype, _list, listsize, multiplier = chunk[-1]
                 if chartype == 'w':
-                    for c2 in self.gen_functions[chartype](_list, perm=self.perm, leet=self.leet, cap=self.cap, capswap=self.capswap, multiplier=multiplier).gen():
+                    for c2 in self._word_gen(_list, multiplier):
                         yield c1 + c2
                 else:
                     for c2 in self.gen_functions[chartype](_list, multiplier).gen():
                         yield c1 + c2
+
+
+    def hc_gen(self, out_dir):
+        '''
+        generates hashcat rules
+
+        each .rules file gets the following naming convention:
+
+            "<simple_mask>-<prepend|append>-<ruleset_num>-<sequence>.rules"
+
+        simple masks with >1 words get multiple sets of rules
+        e.g. mask 'swdw' would get the following rules:
+            1:
+                prepend s
+                append dw
+            2:
+                prepend swd
+        '''
+
+        to_prepend = []
+        to_append = []
+
+        out_dir.mkdir(parents=True, exist_ok=True)
+        smask = ''.join([e[0] for e in self.lists])
+
+        # account for 
+        with open(out_dir / '{}-dict.txt'.format(smask), 'w') as f:
+
+            if 'w' in smask:
+
+                written = False
+
+                for i in range(len(self.lists)):
+
+                    chartype, _list, listsize, multiplier = self.lists[i]
+
+                    if chartype == 'w':
+
+                        to_prepend.append( self.lists[:i] )
+                        to_append.append( self.lists[i+1:] )
+
+                        if not written:
+
+                            for d in self._word_gen(_list, multiplier):
+                                f.write('{}\n'.format(d))
+
+                            written = True
+
+
+
+            else:
+
+                chartype, _list, listsize, multiplier = self.lists[0]
+
+                for w in self.gen_functions[chartype](_list, multiplier).gen():
+                    f.write('{}\n'.format(w))
+
+                to_append.append( self.lists[1:] )
+
+
+        for v in range(len(to_prepend)):
+            for x in range(len(to_prepend[v])):
+                chartype, _list, listsize, multiplier = to_prepend[v][x]
+                with open(out_dir / '{}-prepend-{}-{}.rules'.format(smask, v, x), 'w') as f:
+                    for p in self.gen_functions[chartype](_list, multiplier).gen():
+                        f.write('^{}\n'.format(p))
+
+        for v in range(len(to_append)):
+            for x in range(len(to_append[v])):
+                chartype, _list, listsize, multiplier = to_append[v][x]
+                with open(out_dir / '{}-append-{}-{}.rules'.format(smask, v, x), 'w') as f:
+                    for a in self.gen_functions[chartype](_list, multiplier).gen():
+                        f.write('${}\n'.format(a))
+
+
+    def _word_gen(self, _list, multiplier):
+
+        return self.gen_functions['w'](_list, perm=self.perm, leet=self.leet, cap=self.cap, capswap=self.capswap, multiplier=multiplier).gen()
+
+
+
 
 
 
@@ -451,7 +534,7 @@ class Overseer():
     # Overseer(options.words, options.masks, options.numbers, options.specials, options.per_second,\
     #       options.time, options.permutations, options.leet, options.capital, options.capswap)
     def __init__(self, words, masks=common_masks, numbers=simple_nums, specials=common_specials, pps=hashrate, \
-        target_time=finish_time, perm=0, leet=False, cap=False, capswap=False):
+        target_time=finish_time, perm=0, leet=False, cap=False, capswap=False, hc_dir=None):
 
         self.masks          = masks
         self.words          = words
@@ -463,6 +546,8 @@ class Overseer():
         self.leet           = leet
         self.cap            = cap
         self.capswap        = capswap
+
+        self.hc_dir         = hc_dir
 
         if self.leet:
             self.leet_size  = max_leet
@@ -502,10 +587,17 @@ class Overseer():
                 for g in chunk[2]:
                     print(g)
         '''
+
         for minfo in self.mask_info:
             c = Concatenator(minfo.chunk_info, self.perm, self.leet, self.cap, self.capswap)
-            for p in c.gen():
-                print(p)
+
+            if self.hc_dir is None:
+                for p in c.gen():
+                    print(p)
+
+            else:
+                c.hc_gen(self.hc_dir)
+
 
 
 
@@ -769,7 +861,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--percent',          type=int,           default=liststat_coverage,      help="Percent coverage from liststat file: default {}".format(liststat_coverage), metavar='INT')
     parser.add_argument('-pps', '--per-second',     type=int,           default=hashrate,               help="Expected hashrate - used for limiting time spent on complex masks: default {}".format(hashrate), metavar='INT')
     parser.add_argument('-t', '--time',             type=int,           default=finish_time,            help="Target time to finish in hours: default {}".format(finish_time), metavar='INT')
-    parser.add_argument('-hc', '--hashcat',                                                             help="Use hashcat rules to maximize efficiency", metavar='DIR')
+    parser.add_argument('-hc', '--hashcat',         type=Path,          default=Path(def_hc_dir),       help="Use hashcat rules to maximize efficiency", metavar='DIR')
 
     parser.add_argument('-w', '--words',            type=list_from_file,    default=None,               help="File containing words", metavar='FILE')
     parser.add_argument('-n', '--numbers',          type=list_from_file,    default=simple_nums,        help="File containing numbers: e.g. '7', '123', '1986', etc.", metavar='FILE')
@@ -792,6 +884,10 @@ if __name__ == '__main__':
         options = parser.parse_args()
 
         if options.words is None:
+            if stdin.isatty():
+                parser.print_help()
+                stderr.write('\n [!] Please specify wordlist or pipe to stdin\n')
+                exit(2)
             options.words = [l.decode().strip('\r\n') for l in stdin.buffer.readlines()]
 
         # parse file from liststat.py
@@ -830,7 +926,7 @@ if __name__ == '__main__':
         #   (max_leet if options.leet else 1), (max_cap if options.capswap else 5), (not options.no_confirm) )
 
         o = Overseer(options.words, options.masks, options.numbers, options.specials, options.per_second,\
-            options.time, options.permutations, options.leet, options.capital, options.capswap)
+            options.time, options.permutations, options.leet, options.capital, options.capswap, options.hashcat)
         if not options.no_confirm:
             o.print_job_stats()
         o.start()
