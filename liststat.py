@@ -53,7 +53,7 @@ chunks to count:
 
 --> Useful for finding common words, appended/prepended numbers, punctuation, etc.
 
-Determines how individual parts of words are added to stats (see help(Mask.add()) for explanation)
+Determines how individual parts of words are added to stats (see help(Mask.add) for explanation)
 
     1.  'chunk' references a position in the word.
         In the word 'pass@123', chunk 0 is 'pass', 1 is '@', and 2 (or -1) is '123', etc.
@@ -757,13 +757,14 @@ def error_print(a):
 
 
 
-
 def _check_dir(d):
     try:
         os.makedirs(d)
         assert os.path.isdir(d), "Can't create output directory"
     except OSError:
         pass
+
+
 
 
 if __name__ == '__main__':
