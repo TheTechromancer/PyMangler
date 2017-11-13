@@ -62,9 +62,6 @@ common_masks = [
 # hashcat settings
 hc_binary   = 'hashcat'
 
-# hashcat rule output directory
-def_hc_dir = './hashcat'
-
 # drop the bottom 10% of entries from liststat file
 liststat_coverage = 90
 
@@ -81,7 +78,6 @@ finish_time = 24 # 168 == 1 week
 
 # don't change unless you get errors
 wordlist_encoding = 'utf-8'
-
 
 
 
@@ -893,7 +889,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', '--percent',          type=int,           default=liststat_coverage,      help="Percent coverage from liststat file: default {}".format(liststat_coverage), metavar='INT')
     parser.add_argument('-pps', '--per-second',     type=int,           default=hashrate,               help="Expected hashrate - used for limiting time spent on complex masks: default {}".format(hashrate), metavar='INT')
     parser.add_argument('-t', '--time',             type=int,           default=finish_time,            help="Target time to finish in hours: default {}".format(finish_time), metavar='INT')
-    parser.add_argument('-hc', '--hashcat',         type=Path,          default=Path(def_hc_dir),       help="Use hashcat rules to maximize efficiency", metavar='DIR')
+    parser.add_argument('-hc', '--hashcat',         type=Path,                                          help="Use hashcat rules to maximize efficiency", metavar='DIR')
 
     parser.add_argument('-w', '--words',            type=list_from_file,    default=None,               help="File containing words", metavar='FILE')
     parser.add_argument('-n', '--numbers',          type=list_from_file,    default=simple_nums,        help="File containing numbers: e.g. '7', '123', '1986', etc.", metavar='FILE')
