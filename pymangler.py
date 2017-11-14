@@ -1,5 +1,7 @@
 #!/usr/bin/python3
 
+# TODO: modify to trim wordlists on masks where count(char == 'w') > 1.
+# e.g. "wdw"
 
 simple_mangling = False
 try:
@@ -49,9 +51,9 @@ common_masks = [
     'wd',
     'dw',
     'ws',
-    'dwd',
     'wds',
-    'wsd'
+    'wsd',
+    'dwd'
     #'dws',
     #'swd',
     #'dsw',
@@ -62,8 +64,8 @@ common_masks = [
 # hashcat settings
 hc_binary   = 'hashcat'
 
-# drop the bottom 10% of entries from liststat file
-liststat_coverage = 90
+# drop the bottom 20% of entries from liststat file
+liststat_coverage = 80
 
 # max mutations for each word
 # reduces mutation keyspace to linear rather than exponential
@@ -739,8 +741,8 @@ class Overseer():
             
             for chartype in mask:
                 if chartype == 'w':
-                    listsize = max(1, min(int(len(self.lists[chartype]) * word_multiplier * self.leet_size * self.cap_size),\
-                    (len(self.lists[chartype]) * self.leet_size * self.cap_size)))
+                    listsize = len(self.lists[chartype]) * self.leet_size * self.cap_size
+                    listsize = max(1, min(int(listsize * word_multiplier), listsize))
                 else:
                     listsize = max(1, min(int(len(self.lists[chartype]) * multiplier), len(self.lists[chartype])))
                 
@@ -883,7 +885,7 @@ if __name__ == '__main__':
 
     ### ARGUMENTS ###
 
-    parser = ArgumentParser(description="Mangle wordlist using traditional methods, or syllable-like mutations")
+    parser = ArgumentParser(description="Mangle wordlist using traditional methods, or based on an analyzed wordlist")
 
     parser.add_argument('-l', '--loadfile',         type=obj_from_file,                                 help="Savefile from liststat.py", metavar='FILE')
     parser.add_argument('-p', '--percent',          type=int,           default=liststat_coverage,      help="Percent coverage from liststat file: default {}".format(liststat_coverage), metavar='INT')
@@ -891,15 +893,15 @@ if __name__ == '__main__':
     parser.add_argument('-t', '--time',             type=int,           default=finish_time,            help="Target time to finish in hours: default {}".format(finish_time), metavar='INT')
     parser.add_argument('-hc', '--hashcat',         type=Path,                                          help="Use hashcat rules to maximize efficiency", metavar='DIR')
 
-    parser.add_argument('-w', '--words',            type=list_from_file,    default=None,               help="File containing words", metavar='FILE')
-    parser.add_argument('-n', '--numbers',          type=list_from_file,    default=simple_nums,        help="File containing numbers: e.g. '7', '123', '1986', etc.", metavar='FILE')
-    parser.add_argument('-s', '--specials',         type=list_from_file,    default=common_specials,    help="File containing special characters: e.g. '#', '!!!', '??', etc.", metavar='FILE')
-    parser.add_argument('-m', '--masks',            type=list_from_file,    default=common_masks,       help="File containing simple masks: e.g. 'wds' (word-digit-special)", metavar='FILE')
+    parser.add_argument('-w', '--words',            type=list_from_file,                                help="File containing words", metavar='FILE')
+    parser.add_argument('-n', '--numbers',          type=list_from_file,                                help="File containing numbers: e.g. '7', '123', '1986', etc.", metavar='FILE')
+    parser.add_argument('-s', '--specials',         type=list_from_file,                                help="File containing special characters: e.g. '#', '!!!', '??', etc.", metavar='FILE')
+    parser.add_argument('-m', '--masks',            type=list_from_file,                                help="File containing simple masks: e.g. 'wds' (word-digit-special)", metavar='FILE')
 
     parser.add_argument('-L',   '--leet',           action='store_true',                                help="All possible 1337 combinations: w0rd")
     parser.add_argument('-c',   '--capital',        action='store_true',                                help="Common caps variations: Word, word, WORD")
     parser.add_argument('-C',   '--capswap',        action='store_true',                                help="All possible case combinations: wOrD")
-    parser.add_argument('-P',   '--permutations',   type=int,               default=1,                  help="Max times to combine words (careful! exponential)", metavar='INT')
+    parser.add_argument('-P',   '--permutations',   type=int,           default=1,                      help="Max times to combine words (careful! exponential)", metavar='INT')
 
     parser.add_argument('-mm', '--mask-max',        type=int,                                           help="Maximum masks to take as iput", metavar='INT')
     parser.add_argument('-wm', '--word-max',        type=int,                                           help="Maximum words to take as input", metavar='INT')
@@ -911,15 +913,18 @@ if __name__ == '__main__':
 
         options = parser.parse_args()
 
-        if options.words is None:
+        if options.words is None and not options.loadfile:
             if stdin.isatty():
                 parser.print_help()
                 stderr.write('\n [!] Please specify wordlist or pipe to stdin\n')
                 exit(2)
-            options.words = [l.decode().strip('\r\n') for l in stdin.buffer.readlines()]
+            else:
+                options.words = [l.decode().strip('\r\n') for l in stdin.buffer.readlines()]
 
         # parse file from liststat.py
-        if options.loadfile and not simple_mangling:
+        if options.loadfile:
+            if simple_mangling:
+                assert False, "Must have access to liststat.py before loading savefile."
 
             l = options.loadfile
             p = options.percent
@@ -945,6 +950,13 @@ if __name__ == '__main__':
                     # clear dictionary to save memory
                     l.chunks[pos][char] = None
             l = None
+
+        else:
+            if not options.masks:       options.masks       = common_masks
+            if not options.numbers:     options.numbers     = simple_nums
+            if not options.specials:    options.specials    = common_specials
+
+
 
         # def _calc_multiplier(masks, words, numbers, specials, pps, target_time, leet=1, capswap=1, confirm=True):
         # _calc_multiplier( options.masks, options.words, options.numbers, options.specials, options.per_second, options.time,\
