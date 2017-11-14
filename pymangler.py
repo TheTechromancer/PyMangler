@@ -611,6 +611,8 @@ class Overseer():
                 jobsets.append(c.hc_gen(self.hc_dir))
 
         if jobsets:
+            stderr.write('\n' + '=' * 50 + '\n')
+            print('#!/bin/bash\n')
             for jobset in jobsets:
                 d, rulesets = jobset
                 for _r in rulesets:
@@ -624,6 +626,7 @@ class Overseer():
                         print(' '.join(cmd))
 
                     commands.append(r)
+            stderr.write('\n' + '=' * 50 + '\n')
 
             return commands
 
