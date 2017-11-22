@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 '''
 NOTE:   You can customize the results of this script by choosing the character sets or
@@ -152,7 +152,9 @@ class ListStat:
     stores:     global information on wordlist
     '''
 
-    def __init__(self):
+    def __init__(self, ignore_leet=False):
+	
+        self.ignore_leet    = ignore_leet
 
         # list stats
         self.total          = 0  # total number of words
@@ -197,7 +199,7 @@ class ListStat:
 
         # simple mask - moved from WordStat for efficiency
         # arg '6' means that upper and lower case are grouped together
-        _simple_mask = word.mask.generalize(charset=6, leet=True)
+        _simple_mask = word.mask.generalize(charset=6, leet=(not self.ignore_leet))
         simple_mask = ''
         for s in _simple_mask:
             simple_mask += charsets[s[0]][3]
@@ -357,7 +359,7 @@ class ListStat:
 
             for charset in chunks_to_count[position]:
 
-                temp_lst = mask.generalize(charset, leet=chunks_leet)
+                temp_lst = mask.generalize(charset, leet=(self.ignore_leet))
 
                 # recurrance = True if more than 1 chunk with the same
                 # charset appears in one word
@@ -837,7 +839,7 @@ if __name__ == '__main__':
             word_gen =  filter_wordlist(read_input(options.input_file, options.min_length, options.max_length), \
                         options.exclude, options.require, options.min_chartypes, options.max_chartypes, options.clean)
 
-            list_stats = ListStat()
+            list_stats = ListStat(options.no_leet)
 
             c = 1
             for word in word_gen:

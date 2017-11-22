@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 
 # TODO: modify to trim wordlists on masks where count(char == 'w') > 1.
 # e.g. "wdw"
@@ -12,8 +12,10 @@ except ImportError:
 import pickle
 import string
 import itertools
+
 from time import sleep
 from pathlib import Path
+from os import name as os_type
 #from signal import signal, SIGPIPE, SIG_DFL
 from sys import argv, exit, stdin, stderr
 from argparse import ArgumentParser, FileType, ArgumentError
@@ -62,7 +64,12 @@ common_masks = [
 ]
 
 # hashcat settings
-hc_binary   = 'hashcat'
+if 'ix' in os_type:
+	hc_binary   = 'hashcat'
+	shebang		= '#!/bin/bash'
+else:
+	hc_binary	= 'hashcat64.bin'
+	shebang		= ''
 
 # drop the bottom 20% of entries from liststat file
 liststat_coverage = 80
@@ -449,7 +456,7 @@ class Concatenator():
         out_dir = out_dir / smask
         out_dir.mkdir(parents=True, exist_ok=True)
         
-        dict_filename = out_dir / 'dict.txt'
+        dict_filename = str(Path(out_dir / 'dict.txt').absolute())
         with open(dict_filename, 'w') as f:
 
             if 'w' in smask:
@@ -505,7 +512,7 @@ class Concatenator():
             for i in range(len(ruleset)):
                 for e in ruleset[i]:
                     chartype, _list, listsize, multiplier = e
-                    filename = out_dir / '{}-{}.rules'.format(rule_chars[i][0], chartype)
+                    filename = str( (out_dir / '{}-{}.rules'.format(rule_chars[i][0], chartype)).absolute() )
                     if not chartype in written:
                         written.append(chartype)
                         with open(filename, 'w') as f:
@@ -612,7 +619,7 @@ class Overseer():
 
         if jobsets:
             stderr.write('\n' + '=' * 50 + '\n')
-            print('#!/bin/bash\n')
+            print(shebang)
             for jobset in jobsets:
                 d, rulesets = jobset
                 for _r in rulesets:
@@ -621,7 +628,7 @@ class Overseer():
                     for _ in _r:
                         r.extend(['-r', _])
 
-                    cmd = [hc_binary] + ['-a', '0'] + r + [d, hashfile]
+                    cmd = [hc_binary] + ['-w', '1'] + ['-a', '0'] + r + [d, hashfile]
                     if _print:
                         print(' '.join(cmd))
 
