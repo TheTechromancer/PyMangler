@@ -65,11 +65,17 @@ common_masks = [
 
 # hashcat settings
 if 'ix' in os_type:
-	hc_binary   = 'hashcat'
-	shebang		= '#!/bin/bash'
+    posix       = True
+    hc_binary   = 'hashcat'
+    shebang     = '#!/bin/bash'
+    file_ext    = '.sh'
+    var_prefix  = '$'
 else:
-	hc_binary	= 'hashcat64.bin'
-	shebang		= ''
+    posix       = False
+    hc_binary   = 'hashcat64.exe'
+    shebang     = ''
+    file_ext    = '.bat'
+    var_prefix  = '%'
 
 # drop the bottom 20% of entries from liststat file
 liststat_coverage = 80
@@ -513,8 +519,8 @@ class Concatenator():
                 for e in ruleset[i]:
                     chartype, _list, listsize, multiplier = e
                     filename = str( (out_dir / '{}-{}.rules'.format(rule_chars[i][0], chartype)).absolute() )
-                    if not chartype in written:
-                        written.append(chartype)
+                    if not (chartype, rule_chars[i][0]) in written:
+                        written.append( (chartype, rule_chars[i][0]) )
                         with open(filename, 'w') as f:
                             if chartype == 'w':
                                 for a in self._word_gen(_list, multiplier):
@@ -564,7 +570,7 @@ class Overseer():
         self.cap            = cap
         self.capswap        = capswap
 
-        self.hc_dir         = hc_dir
+        self.hc_dir         = Path(hc_dir)
 
         if self.leet:
             self.leet_size  = max_leet
@@ -618,22 +624,27 @@ class Overseer():
                 jobsets.append(c.hc_gen(self.hc_dir))
 
         if jobsets:
-            stderr.write('\n' + '=' * 50 + '\n')
-            print(shebang)
-            for jobset in jobsets:
-                d, rulesets = jobset
-                for _r in rulesets:
+            script_file = self.hc_dir / 'hashcat{}'.format(file_ext)
+            with open(script_file, 'w') as f:
+                f.write(shebang + '\n')
+                for jobset in jobsets:
+                    d, rulesets = jobset
+                    for _r in rulesets:
 
-                    r = []
-                    for _ in _r:
-                        r.extend(['-r', _])
+                        r = []
+                        for _ in _r:
+                            r.extend(['-r', _])
 
-                    cmd = [hc_binary] + ['-w', '1'] + ['-a', '0'] + r + [d, hashfile]
-                    if _print:
-                        print(' '.join(cmd))
+                        cmd = [hc_binary] + ['-w', '1'] + ['-a', '0'] + r + [d, '"{}1"'.format(var_prefix)]
+                        cmd = ' '.join(cmd)
+                        f.write(cmd + '\n')
 
-                    commands.append(r)
-            stderr.write('\n' + '=' * 50 + '\n')
+                        commands.append(r)
+
+            if posix:
+                script_file.chmod(0o755)
+
+            stderr.write('\n [+] See {}/ for auto-generated hashcat script\n\n'.format(str(self.hc_dir)))
 
             return commands
 
