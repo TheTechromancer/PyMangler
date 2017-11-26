@@ -644,7 +644,8 @@ class Overseer():
             if posix:
                 script_file.chmod(0o755)
 
-            stderr.write('\n [+] See {}/ for auto-generated hashcat script\n\n'.format(str(self.hc_dir)))
+            stderr.write('\n [+] See {}/ for auto-generated hashcat script\n'.format(str(self.hc_dir)))
+            stderr.write(' [+] Syntax is {} [hashfile] [hashtype]\n'.format(str(script_file)))
 
             return commands
 
