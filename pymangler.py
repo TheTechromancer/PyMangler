@@ -603,12 +603,8 @@ class Overseer():
 
 
     def start(self, hc_binary=hc_binary, hashfile='<hashfile>', _print=False):
-
         '''
-        for minfo in self.mask_info:
-            for chunk in minfo.adjusted_lists:
-                for g in chunk[2]:
-                    print(g)
+        Prints generated passwords unless hashcat directory is specified
         '''
 
         jobsets = []
@@ -644,8 +640,9 @@ class Overseer():
             if posix:
                 script_file.chmod(0o755)
 
-            stderr.write('\n [+] See {}/ for auto-generated hashcat script\n'.format(str(self.hc_dir)))
-            stderr.write(' [+] Syntax is {} [hashfile] [hashtype]\n'.format(str(script_file)))
+            stderr.write('\n [+] Script generation complete.  Syntax is:\n')
+            stderr.write('\n  \t{} [hashfile]\n'.format(str(script_file)))
+            stderr.write('\n [+] Feel free to edit script to add hashtype, etc.\n\n')
 
             return commands
 
