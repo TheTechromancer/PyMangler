@@ -82,7 +82,7 @@ liststat_coverage = 80
 
 # max mutations for each word
 # reduces mutation keyspace to linear rather than exponential
-max_leet    = 256
+max_leet    = 128
 max_cap     = 512
 
 # expected average hashes per second
@@ -110,7 +110,7 @@ simple_chartypes = {
 
 class Mutator():
 
-    def __init__(self, inlist, perm=0, leet=True, cap=True, capswap=True, multiplier=1):
+    def __init__(self, inlist, perm=0, leet=True, cap=True, capswap=True, multiplier=1, limit_words=False):
 
         # "leet" character swaps - modify as needed.
         # Keys are replaceable characters; values are their 1337 replacements.
@@ -150,11 +150,15 @@ class Mutator():
         # cur - used for carrying over unused mutations into next iteration
         self.max_leet       = max(1, min(int(max_leet * multiplier), max_leet))
         self.max_cap        = max(1, min(int(max_cap * multiplier), max_cap))
+        if limit_words:
+            self.max_words  = max(1, int(len(inlist) * multiplier))
+        else:
+            self.max_words  = len(inlist)
         self.cur_leet       = 0
         self.cur_cap        = 0
 
         # TODO - truncate wordlist if mask includes more than one word
-        self.inlist         = inlist
+        self.inlist         = inlist[:self.max_words]
 
         self.perm_depth     = perm
         self.do_leet        = leet
@@ -167,7 +171,7 @@ class Mutator():
         run mangling functions on wordlist
         '''
 
-        for word in self.cap(self.leet(self.perm(self.inlist))):
+        for word in self.cap(self.leet(self.perm(self.inlist[:self.max_words]))):
             yield word
 
 
@@ -393,15 +397,16 @@ class Multiplier():
 
 class Concatenator():
 
-    def __init__(self, lists, perm, leet, cap, capswap):
+    def __init__(self, lists, perm, leet, cap, capswap, limit_words=False):
 
-        # TODO: add hashcat rule functionality
         self.lists          = lists
 
         self.perm           = perm
         self.leet           = leet
         self.cap            = cap
         self.capswap        = capswap
+
+        self.limit_words    = limit_words
 
         self.gen_functions  = {
             'w': Mutator,
@@ -500,7 +505,7 @@ class Concatenator():
 
     def _word_gen(self, _list, multiplier):
 
-        return self.gen_functions['w'](_list, perm=self.perm, leet=self.leet, cap=self.cap, capswap=self.capswap, multiplier=multiplier).gen()
+        return self.gen_functions['w'](_list, perm=self.perm, leet=self.leet, cap=self.cap, capswap=self.capswap, multiplier=multiplier, limit_words=self.limit_words).gen()
 
 
     def _write_rules(self, to_pend, out_dir):
@@ -523,7 +528,7 @@ class Concatenator():
                         written.append( (chartype, rule_chars[i][0]) )
                         with open(filename, 'w') as f:
                             if chartype == 'w':
-                                for a in self._word_gen(_list, multiplier):
+                                for a in self._word_gen(_list, multiplier, limit_words):
                                     f.write('{}{}\n'.format(rule_chars[i][1], a))
                             else:
                                 for a in self.gen_functions[chartype](_list, multiplier).gen():
@@ -539,12 +544,13 @@ class Concatenator():
 
 class MaskInfo():
 
-    def __init__(self, total_possible, total_actual, multiplier, word_multiplier, chunk_info):
+    def __init__(self, total_possible, total_actual, multiplier, word_multiplier, chunk_info, limit_words):
 
         self.total_possible     = total_possible
         self.total_actual       = total_actual
         self.multiplier         = multiplier
         self.word_multiplier    = word_multiplier
+        self.limit_words        = limit_words
 
         self.coverage           = total_actual / total_possible * 100
 
@@ -570,7 +576,10 @@ class Overseer():
         self.cap            = cap
         self.capswap        = capswap
 
-        self.hc_dir         = Path(hc_dir)
+        if hc_dir:
+            self.hc_dir     = Path(hc_dir)
+        else:
+            self.hc_dir     = hc_dir
 
         if self.leet:
             self.leet_size  = max_leet
@@ -610,7 +619,7 @@ class Overseer():
         jobsets = []
         commands = []
         for minfo in self.mask_info:
-            c = Concatenator(minfo.chunk_info, self.perm, self.leet, self.cap, self.capswap)
+            c = Concatenator(minfo.chunk_info, self.perm, self.leet, self.cap, self.capswap, minfo.limit_words)
 
             if self.hc_dir is None:
                 for p in c.gen():
@@ -682,7 +691,7 @@ class Overseer():
                 total_methods
                 add each unique mutation method (e.g. cap + leet + append_num = 3) (same as mask_len + num_mutations)
             step 2:
-                find multiplier for each method (e.g. leet*=256, cap*=512, append_num*=3200)
+                find multiplier for each method (e.g. leet*=128, cap*=512, append_num*=3200)
             step 3:
                 multiplier = ( total_desired / (wordlist_length * multiplier1 * multiplier2 ...) ) ** (1 / total_methods)
                 overwrite multipliers[mask] with multiplier
@@ -719,17 +728,16 @@ class Overseer():
             self.num_masks -= 1
 
             num_words = mask.count('w')
+            limit_words = (True if num_words > 1 else False)
             mlen = len(mask)
 
             # +1 for each exponential mutation - including wordlist, if mask includes more than one word
             # keep word_mutations (such as leet & capswap) separate, since they're required to compute chartype-specific number of attempts
-            num_word_mutations = (1 if self.leet_size > 1 else 0) + (1 if self.cap_size > 1 else 0)
-            num_pend_mutations = mlen - num_words
+            num_word_mutations = (1 if self.leet_size > 1 else 0) + (1 if self.cap_size > 1 else 0) + (1 if limit_words else 0)
 
-            # print('NUM_WORD_MUTATIONS: {}'.format(num_word_mutations))
-            # print('NUM_PEND_MUTATIONS: {}'.format(num_pend_mutations))
-
-            num_mutations = max(1, num_word_mutations + num_pend_mutations)
+            #print('\n{}:'.format(mask))
+            #print('NUM_WORD_MUTATIONS: {}'.format(num_word_mutations))
+            #print('NUM_PEND_MUTATIONS: {}'.format(num_pend_mutations))
 
             total_possible = 1
             for chartype in mask:
@@ -738,19 +746,22 @@ class Overseer():
                 else:
                     total_possible *= len(self.lists[chartype])
 
-            # print('NUM_MUTATIONS: {}'.format(num_mutations))
-            # print('TOTAL_POSSIBLE: {:,}'.format(total_possible))
+            #print('NUM_MUTATIONS: {}'.format(num_mutations))
+            #print('TOTAL_POSSIBLE: {:,}'.format(total_possible))
+            #print('TOTAL_ALLOWED: {:,}'.format(self.per_mask_limit))
 
-            multiplier = (self.per_mask_limit / total_possible) ** (1 / num_mutations)
+            multiplier = min(1, (self.per_mask_limit / total_possible) ** (1 / mlen))
 
-            # print('multiplier: {}'.format(multiplier))
+            #print('MULTIPLIER: {}'.format(multiplier))
+            #print('TOTAL_POSSIBLE * MULTIPLIER: {:,}'.format(int(total_possible * multiplier)))
 
             try:
-                word_multiplier = multiplier ** (num_word_mutations / num_words)
+                #word_multiplier = min(1, multiplier ** (num_word_mutations / num_words))
+                word_multiplier = min(1, multiplier ** (1 / num_word_mutations))
             except ZeroDivisionError:
                 word_multiplier = multiplier
 
-            # print('WORD_MULTIPLIER: {}'.format(word_multiplier))
+            #print('WORD_MULTIPLIER: {}'.format(word_multiplier))
 
             total_actual = 1
 
@@ -761,9 +772,12 @@ class Overseer():
             for chartype in mask:
                 if chartype == 'w':
                     listsize = len(self.lists[chartype]) * self.leet_size * self.cap_size
-                    listsize = max(1, min(int(listsize * word_multiplier), listsize))
+                    if limit_words:
+                        listsize = max(1, int(listsize * multiplier))
+                    else:
+                        listsize = max(1, int(listsize * multiplier), len(self.lists[chartype]))
                 else:
-                    listsize = max(1, min(int(len(self.lists[chartype]) * multiplier), len(self.lists[chartype])))
+                    listsize = max(1, int(len(self.lists[chartype]) * multiplier))
                 
                 chunk_info.append( (chartype, self.lists[chartype], listsize, multiplier) )
 
@@ -773,7 +787,7 @@ class Overseer():
 
             total_actual = min(int(total_actual), total_possible)
 
-            self.mask_info.append( MaskInfo(total_possible, total_actual, multiplier, word_multiplier, chunk_info) )
+            self.mask_info.append( MaskInfo(total_possible, total_actual, multiplier, word_multiplier, chunk_info, limit_words) )
 
             extra = self.per_mask_limit - total_possible
             if extra > 0 and self.num_masks > 0:
