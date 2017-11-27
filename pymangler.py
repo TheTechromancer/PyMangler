@@ -528,7 +528,7 @@ class Concatenator():
                         written.append( (chartype, rule_chars[i][0]) )
                         with open(filename, 'w') as f:
                             if chartype == 'w':
-                                for a in self._word_gen(_list, multiplier, limit_words):
+                                for a in self._word_gen(_list, multiplier):
                                     f.write('{}{}\n'.format(rule_chars[i][1], a))
                             else:
                                 for a in self.gen_functions[chartype](_list, multiplier).gen():
