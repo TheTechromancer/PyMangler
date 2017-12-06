@@ -529,10 +529,11 @@ class Concatenator():
                         with open(filename, 'w') as f:
                             if chartype == 'w':
                                 for a in self._word_gen(_list, multiplier):
-                                    f.write('{}{}\n'.format(rule_chars[i][1], a))
+                                    f.write('{}\n'.format(' '.join('{}{}'.format(rule_chars[i][1], c) for c in a)))
                             else:
                                 for a in self.gen_functions[chartype](_list, multiplier).gen():
-                                    f.write('{}{}\n'.format(rule_chars[i][1], a))
+                                    #f.write('{}{}\n'.format(rule_chars[i][1], a))
+                                    f.write('{}\n'.format(' '.join('{}{}'.format(rule_chars[i][1], c) for c in a)))
                     r.append(str(filename))
             jobs.append(r)
 
