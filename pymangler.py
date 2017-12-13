@@ -638,6 +638,7 @@ class Overseer():
             with open(script_file, 'w') as f:
                 f.write(shebang + line_ending)
                 for jobset in jobsets:
+                    # dictionary, ruleset
                     d, rulesets = jobset
                     for _r in rulesets:
 
@@ -645,7 +646,7 @@ class Overseer():
                         for _ in _r:
                             r.extend(['-r', _])
 
-                        cmd = [hc_binary] + ['-w', '1'] + ['-a', '0'] + r + [d, '"{}1"'.format(var_prefix)]
+                        cmd = [hc_binary] + ['-w', '1'] + ['-a', '0'] + r + ['"{}1"'.format(var_prefix), d]
                         cmd = ' '.join(cmd)
                         f.write(cmd + line_ending)
 
