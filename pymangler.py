@@ -63,6 +63,7 @@ common_masks = [
     #''
 ]
 
+
 # hashcat settings
 if 'ix' in os_type:
     posix       = True
@@ -70,12 +71,15 @@ if 'ix' in os_type:
     shebang     = '#!/bin/bash'
     file_ext    = '.sh'
     var_prefix  = '$'
+    line_ending = '\n'
 else:
     posix       = False
     hc_binary   = 'hashcat64.exe'
     shebang     = ''
     file_ext    = '.bat'
     var_prefix  = '%'
+    line_ending = '\r\n'
+
 
 # drop the bottom 20% of entries from liststat file
 liststat_coverage = 80
@@ -632,7 +636,7 @@ class Overseer():
         if jobsets:
             script_file = self.hc_dir / 'hashcat{}'.format(file_ext)
             with open(script_file, 'w') as f:
-                f.write(shebang + '\n')
+                f.write(shebang + line_ending)
                 for jobset in jobsets:
                     d, rulesets = jobset
                     for _r in rulesets:
@@ -643,7 +647,7 @@ class Overseer():
 
                         cmd = [hc_binary] + ['-w', '1'] + ['-a', '0'] + r + [d, '"{}1"'.format(var_prefix)]
                         cmd = ' '.join(cmd)
-                        f.write(cmd + '\n')
+                        f.write(cmd + line_ending)
 
                         commands.append(r)
 
