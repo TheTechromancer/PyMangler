@@ -1,5 +1,7 @@
 # PyMangler
 
+## NOTE: PasswordStretcher is the successor to this, and will probably work better.
+
 ###
 A wordlist mangler which has the ability to analyze existing lists and generate large quantities of passwords based on patterns found therein.  A fairly methodical approach to password cracking, to be used after traditional methods have failed.
 
